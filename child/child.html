@@ -3,55 +3,129 @@
 <head>
   <meta charset="UTF-8">
   <title>Child</title>
+  <style>
+    #no_match {
+      color: red;
+    }
+    #match {
+      color: green;
+    }
+    #user {
+      margin: 25px;
+    }
+  </style>
 </head>
 <body>
 
   <h3>child.html</h3>
 
-  <button id="try_again">Try again</button>
+  <div id="user">Data from parent will display here</div>
+  <div id="user_div"></div>
+  <div id="send"></div>
 
+  <button id="try_again">Send data to parent</button>
   <script>
-    var get_user = function () {
-      return new Promise(function (resolve, reject) {
-        setTimeout(function () {
-          resolve({
-            name: "Ryan Dahl",
-            fame: "NodeJS"
-          });
-        }, 500);
-      });
+    var users_list = [
+      {name: "Brendan Eich", fame: "Javascript"},
+      {name: "David Heinemeir Hansson", fame: "Ruby on Rails"},
+      {name: "Ryan Dahl", fame: "NodeJS"}
+    ];
+    var btn = document.getElementById("try_again");
+    var user = document.getElementById("user");
+    var user_div = document.getElementById("user_div");
+    var send = document.getElementById("send");
+
+    var get_random_user = function (users) {
+      return users[Math.floor(Math.random() * users.length)];
     }
 
-    var get_current_port = function () {
+    function child_btn_handler(e) {
+      user_div.innerHTML = "";
+      send.innerHTML = "";
+      var rand_user = get_random_user(users_list)
+      user.innerHTML = "Sending " + rand_user.name + " to parent.html"
+      parent.postMessage({
+        msg: "user_from_child",
+        user_from_child: rand_user
+      }, "*");
+    }
+
+    var do_users_match = function (user1, user2) {
       return new Promise(function (resolve, reject) {
-        resolve(window.location.port);
+        setTimeout(function () {
+          if (user1.name === user2.name) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        }, 1000)
       })
     }
 
-    function try_again(e) {
-      /*
-      Mimicing a database query for a user and sending the result of that request to the parent page.
-      */
-      get_user().then(function (user) {
-        parent.postMessage({
-          msg: "user_from_child",
-          user: user
-        }, "*");
-      });
-    }
-
     function child_msg_listener(e) {
-      if (e.data.msg === "user_from_parent") {
-        if (e.data.user) {
-          console.log("found Ryan Dahl on parent page");
+      if (e.data.msg === "do_users_match") {
+        if (e.data.do_users_match) {
+          user.innerHTML = "<span id='match'>Found " + e.data.child_user.name +" in parent page. Parent and child match.</span>";
         } else {
-          console.log("did not find Ryan Dahl on parent page");
+          user.innerHTML = "<span id='no_match'>Child found " + e.data.child_user.name + ", parent found " + e.data.parent_user.name + "</span>";
         }
+        parent.postMessage({
+          msg: "child_received_data"
+        }, "*")
+      } else if (e.data.msg === "user_from_parent") {
+        var random_user = get_random_user(users_list);
+        user_div.innerHTML = "child.html found user: " +
+                              "<em>" + random_user.name + "</em>";
+        send.innerHTML = "Sending " + random_user.name + " to parent";
+        do_users_match(random_user, e.data.user_from_parent).then(function (data) {
+          parent.postMessage({
+            msg: "do_users_match",
+            do_users_match: data,
+            child_user: random_user,
+            parent_user: e.data.user_from_parent
+          }, "*");
+        })
+      } else if (e.data.msg === "parent_received_data") {
+        send.innerHTML = "Parent received data";
       }
     }
 
-    document.getElementById("try_again").addEventListener("click", try_again)
-    window.addEventListener("message", child_msg_listener)
+    btn.addEventListener("click", child_btn_handler);
+    window.addEventListener("message", child_msg_listener);
+
+    /*
+    var users_list = [
+      {name: "Brendan Eich", fame: "Javascript"},
+      {name: "David Heinemeir Hansson", fame: "Ruby on Rails"},
+      {name: "Ryan Dahl", fame: "NodeJS"},
+      {name: "TJ Holowaychuk", fame: "Express"},
+      {name: "Isaac Scheulter", fame: "npm"},
+      {name: "Douglas Crockford", fame: "JS the Good Parts"}
+    ];
+    var get_users_list = function () {
+      return users_list;
+    }
+    var get_random_user = function (users_list) {
+      return users_list[Math.floor(Math.random() * users_list.length)];
+    }
+    var display_user = function (user) {
+      document.getElementById("user").innerHTML = user.name;
+    }
+
+    var exposedFns = [display_user, get_random_user, get_users_list];
+
+    Courier.expose(exposedFns).then(function (parentFns) {
+      var get_users_list = parentFns.get_users_list;
+      var get_random_user = parentFns.get_random_user;
+      var display_user = parentFns.display_user;
+      btn.addEventListener("click", function () {
+        get_users_list()
+          .then(get_random_user)
+          .then(display_user);
+      });
+    })
+
+    */
   </script>
 </body>
 </html>

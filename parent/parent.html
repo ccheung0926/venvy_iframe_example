@@ -6,17 +6,32 @@
   <style>
     iframe {
       border: 1px solid black;
-      width: 200px;
+      width: 500px;
       height: 200px;
+      display: block;
+      margin: 25px;
+    }
+    #user {
+      margin: 25px;
     }
   </style>
 </head>
 <body>
   <h3>parent.html</h3>
 
+  <div id="user">Click 'try again' in the child</div>
+  <div id="send"></div>
+
+  <button id="parent_btn">Send data to child</button>
+
   <iframe id="child_page" src="http://localhost:3000/child.html" frameborder="0"></iframe>
 
   <script>
+
+    var child_age = document.getElementById("child_page");
+    var user_div = document.getElementById("user");
+    var send = document.getElementById("send");
+    var parent_btn = document.getElementById("parent_btn");
     /*
     An arbitrary list of users that you want to check against from the child page.
     */
@@ -33,28 +48,81 @@
       return users[Math.floor(Math.random() * users.length)];
     }
 
+    var do_users_match = function (user1, user2) {
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          if (user1.name === user2.name) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        }, 1000)
+      })
+    }
+
     function parent_event_listener(e) {
       if (e.data.msg === "user_from_child") {
-        /*
-        Checking if a user from the child page is on this parent page.
-        */
-        var user;
         var random_user = get_random_user(users_list);
-        if (random_user.name === e.data.user.name) {
-          user = random_user;
+        user_div.innerHTML = "parent.html found user: " +
+                              "<em>" + random_user.name + "</em>";
+        send.innerHTML = "Sending " + random_user.name + " to child";
+        do_users_match(random_user, e.data.user_from_child).then(function (data) {
+          child_page.contentWindow.postMessage({
+            msg: "do_users_match",
+            do_users_match: data,
+            parent_user: random_user,
+            child_user: e.data.user_from_child
+          }, "*");
+        })
+      } else if (e.data.msg === "child_received_data") {
+        send.innerHTML = "Child received data";
+      } else if (e.data.msg === "do_users_match") {
+        if (e.data.do_users_match) {
+          user.innerHTML = "<span id='match'>Found " + e.data.parent_user.name +" in child page. Parent and child match.</span>";
         } else {
-          user = undefined;
+          user.innerHTML = "<span id='no_match'>Child found " + e.data.child_user.name + ", parent found " + e.data.parent_user.name + "</span>";
         }
-        document.getElementById("child_page").contentWindow.postMessage({
-          msg: "user_from_parent",
-          user: user
-        }, "*");
-      } else if (e.data.msg === "get_port") {
-
+        child_page.contentWindow.postMessage({
+          msg: "parent_received_data"
+        }, "*")
       }
     }
 
+    function parent_click_handler(e) {
+      send.innerHTML = ""
+      var rand_user = get_random_user(users_list);
+      child_page.contentWindow.postMessage({
+        msg: "user_from_parent",
+        user_from_parent: rand_user
+      }, "*")
+    }
+
+    parent_btn.addEventListener("click", parent_click_handler)
     window.addEventListener("message", parent_event_listener);
+
+    /*
+    var get_random_user = function (users_list) {
+      return users_list[Math.floor(Math.random() * users_list.length)];
+    }
+    var get_users_list = function () {
+      return users_list;
+    }
+    var display_user = function (user) {
+      document.getElementById("user").innerHTML = user.name;
+    }
+
+    var exposedFns = [get_users_list, get_random_user, display_user];
+
+    Courier.expose(exposedFns).then(function (childFns) {
+      var get_users_list = childFns.get_users_list;
+      var get_random_user = childFns.get_random_user;
+      var display_user = childFns.display_user;
+      get_users_list()
+        .then(get_random_user)
+        .then(display_user);
+    })
+
+    */
   </script>
 </body>
 </html>
