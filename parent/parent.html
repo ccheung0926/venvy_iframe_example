@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Parent</title>
+  <style>
+    iframe {
+      border: 1px solid black;
+      width: 200px;
+      height: 200px;
+    }
+  </style>
+</head>
+<body>
+  <h3>parent.html</h3>
+
+  <iframe id="child_page" src="http://localhost:3000/child.html" frameborder="0"></iframe>
+
+  <script>
+    /*
+    An arbitrary list of users that you want to check against from the child page.
+    */
+    var users_list = [
+      {name: "Brendan Eich", fame: "Javascript"},
+      {name: "David Heinemeir Hansson", fame: "Ruby on Rails"},
+      {name: "Ryan Dahl", fame: "NodeJS"}
+    ];
+
+    function parent_event_listener(e) {
+      if (e.data.msg === "get_user") {
+        /*
+        Checking if a user from the child page is on this parent page.
+        */
+        var filtered_users = users_list.filter(function (user) {
+          return user.name === e.data.user.name;
+        });
+        document.getElementById("child_page").contentWindow.postMessage({
+          msg: "filtered_users",
+          filtered_users: filtered_users
+        }, "*");
+      } else if (e.data.msg === "get_port") {
+
+      }
+    }
+
+    window.addEventListener("message", parent_event_listener);
+  </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Child</title>
+</head>
+<body>
+
+  <h3>child.html</h3>
+
+  <button></button>
+
+  <script>
+    var get_user = function () {
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          resolve({
+            name: "Ryan Dahl",
+            fame: "NodeJS"
+          });
+        }, 2000);
+      });
+    }
+
+    var get_current_port = function () {
+      return new Promise(function (resolve, reject) {
+        resolve(window.location.port);
+      })
+    }
+    /*
+    Mimicing a database query for a user and sending the result of that request to the parent page.
+    */
+    get_user().then(function (user) {
+      parent.postMessage({
+        msg: "get_user",
+        user: user
+      }, "*");
+    });
+
+    get_current_port().then(function (port) {
+      parent.postMessage({
+        msg: "get_port",
+        port: port
+      }, "*");
+    })
+
+    function child_msg_listener(e) {
+      if (e.data.msg === "filtered_users") {
+        if (e.data.filtered_users.length) {
+          alert("User was found in parent page!");
+        } else {
+          alert("User was not found in parent page :(")
+        }
+      }
+    }
+
+    window.addEventListener("message", child_msg_listener)
+  </script>
+</body>
+</html>
