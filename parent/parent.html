@@ -23,20 +23,31 @@
     var users_list = [
       {name: "Brendan Eich", fame: "Javascript"},
       {name: "David Heinemeir Hansson", fame: "Ruby on Rails"},
-      {name: "Ryan Dahl", fame: "NodeJS"}
+      {name: "Ryan Dahl", fame: "NodeJS"},
+      {name: "TJ Holowaychuk", fame: "Express"},
+      {name: "Isaac Scheulter", fame: "npm"},
+      {name: "Douglas Crockford", fame: "JS the Good Parts"}
     ];
 
+    var get_random_user = function (users) {
+      return users[Math.floor(Math.random() * users.length)];
+    }
+
     function parent_event_listener(e) {
-      if (e.data.msg === "get_user") {
+      if (e.data.msg === "user_from_child") {
         /*
         Checking if a user from the child page is on this parent page.
         */
-        var filtered_users = users_list.filter(function (user) {
-          return user.name === e.data.user.name;
-        });
+        var user;
+        var random_user = get_random_user(users_list);
+        if (random_user.name === e.data.user.name) {
+          user = random_user;
+        } else {
+          user = undefined;
+        }
         document.getElementById("child_page").contentWindow.postMessage({
-          msg: "filtered_users",
-          filtered_users: filtered_users
+          msg: "user_from_parent",
+          user: user
         }, "*");
       } else if (e.data.msg === "get_port") {
 
